@@ -42,7 +42,7 @@ static void do_nothing_ipi(void *dummy)
 
 static int ipistorm_thread(void *data)
 {
-	unsigned long mycpu = data;
+	unsigned long mycpu = (unsigned long)data;
 	unsigned long jiffies_start;
 
 	atomic_inc(&running);

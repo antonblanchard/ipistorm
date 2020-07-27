@@ -1,8 +1,7 @@
-obj-m := ipistorm.o
-KDIR := /lib/modules/$(shell uname -r)/build
-PWD := $(shell pwd)
+KDIR ?= /lib/modules/`uname -r`/build
+
 default:
-	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules
+	$(MAKE) -C $(KDIR) M=$$PWD
 
 clean:
 	rm -rf *.mod.c *.ko *.o .*.cmd .tmp_versions Module.markers modules.order Module.symvers

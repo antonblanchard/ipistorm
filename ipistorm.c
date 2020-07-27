@@ -23,7 +23,11 @@ MODULE_PARM_DESC(wait, "Wait for IPI to finish? (default true)");
 
 static bool single = false;
 module_param(single, bool, S_IRUGO);
-MODULE_PARM_DESC(wait, "IPI to a single destination? (default false, IPI to all)");
+MODULE_PARM_DESC(single, "IPI to a single destination? (default false, IPI to all)");
+
+static unsigned long offset = 1;
+module_param(offset, ulong, S_IRUGO);
+MODULE_PARM_DESC(offset, "Offset from current CPU for single destination IPI (default 1)");
 
 static unsigned long delay = 0;
 module_param(delay, ulong, S_IRUGO);
@@ -52,7 +56,7 @@ static int ipistorm_thread(void *data)
 
 	while (jiffies < (jiffies_start + timeout*HZ)) {
 		if (single)
-			smp_call_function_single((mycpu + 1) % num_cpus,
+			smp_call_function_single((mycpu + offset) % num_cpus,
 						 do_nothing_ipi, NULL, wait);
 		else
 			smp_call_function(do_nothing_ipi, NULL, wait);

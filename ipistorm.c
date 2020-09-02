@@ -40,6 +40,8 @@ MODULE_PARM_DESC(delay, "Delay between calls in us (default 0)");
 static unsigned int num_cpus;
 static atomic_t running;
 
+static DECLARE_COMPLETION(ipistorm_done);
+
 static void do_nothing_ipi(void *dummy)
 {
 }
@@ -84,6 +86,9 @@ static int ipistorm_thread(void *data)
 		usleep_range(delay, delay+1);
 	}
 
+	if (atomic_dec_and_test(&running))
+		complete(&ipistorm_done);
+
 	return 0;
 }
 
@@ -111,6 +116,7 @@ static int __init ipistorm_init(void)
 
 static void __exit ipistorm_exit(void)
 {
+	wait_for_completion(&ipistorm_done);
 }
 
 module_init(ipistorm_init)

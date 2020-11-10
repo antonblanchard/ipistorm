@@ -27,3 +27,7 @@ Doorbells to same small core on a POWER9 small core box:
 XIVE interrupts:
 
 ```# insmod ./ipistorm.ko timeout=10 single=1 offset=8```
+
+Use `cpulist` parameter to select subsets of cpus :
+
+```# insmod ./ipistorm.ko timeout=10 single=1 offset=8 cpulist=0-7,32-39```

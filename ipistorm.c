@@ -9,6 +9,8 @@
  * 2 of the License, or (at your option) any later version.
  */
 
+#define pr_fmt(fmt) "ipistorm: " fmt
+
 #include <linux/module.h>
 #include <linux/kthread.h>
 #include <linux/delay.h>
@@ -36,6 +38,10 @@ MODULE_PARM_DESC(mask, "Mask for single destination IPI (default no mask)");
 static unsigned long delay = 0;
 module_param(delay, ulong, S_IRUGO);
 MODULE_PARM_DESC(delay, "Delay between calls in us (default 0)");
+
+static char cpulist_str[256];
+module_param_string(cpulist, cpulist_str, sizeof(cpulist_str), 0644);
+MODULE_PARM_DESC(cpulist, "List of CPUs (default all)");
 
 static unsigned int num_cpus;
 static atomic_t running;
@@ -95,10 +101,31 @@ static int ipistorm_thread(void *data)
 static int __init ipistorm_init(void)
 {
 	unsigned long cpu;
+	cpumask_var_t mask;
+	int ret = 0;
 
-	num_cpus = num_online_cpus();
+	init_completion(&ipistorm_done);
 
-	for_each_online_cpu(cpu) {
+	if (!zalloc_cpumask_var(&mask, GFP_KERNEL))
+		return -ENOMEM;
+
+	if (cpulist_str[0]) {
+		ret = cpulist_parse(cpulist_str, mask);
+		if (ret)
+			goto out_free;
+
+		if (!cpumask_subset(mask, cpu_online_mask)) {
+			pr_err("Invalid CPU list: %s\n", cpulist_str);
+			ret = -EINVAL;
+			goto out_free;
+		}
+	} else {
+		cpumask_copy(mask, cpu_online_mask);
+	}
+
+	num_cpus = cpumask_weight(mask);
+
+	for_each_cpu(cpu, mask) {
 		struct task_struct *p;
 		p = kthread_create(ipistorm_thread, (void *)cpu,
 				   "ipistorm/%lu", cpu);
@@ -111,7 +138,9 @@ static int __init ipistorm_init(void)
 		}
 	}
 
-	return 0;
+out_free:
+	free_cpumask_var(mask);
+	return ret;
 }
 
 static void __exit ipistorm_exit(void)

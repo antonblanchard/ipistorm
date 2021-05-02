@@ -89,7 +89,10 @@ static int ipistorm_thread(void *data)
 		else
 			smp_call_function(do_nothing_ipi, NULL, wait);
 
-		usleep_range(delay, delay+1);
+		if (delay)
+			usleep_range(delay, delay+1);
+		else
+			cond_resched();
 	}
 
 	if (atomic_dec_and_test(&running))
